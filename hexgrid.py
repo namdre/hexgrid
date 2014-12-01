@@ -31,6 +31,18 @@ class Grid():
     def cells(self):
         return self._cells.values()
 
+    def neighborhood(self, cell):
+        a = 1 if cell.pos.y % 2 == 0 else -1
+        res = [
+                self._cells.get(cell.pos + (1, 0)),
+                self._cells.get(cell.pos + (-1, 0)),
+                self._cells.get(cell.pos + (0, 1)),
+                self._cells.get(cell.pos + (0, -1)),
+                self._cells.get(cell.pos + (a, 1)),
+                self._cells.get(cell.pos + (a, -1)),
+                ]
+        return filter(None, res)
+
 
 class Cell():
     def __init__(self, x, y, color=(255,0,0)):
@@ -90,12 +102,19 @@ def clicked_cell(grid, pixelpos):
         return None
     
 
-
 def handle_click(screen, grid, pixelpos):
     cell = clicked_cell(grid, pixelpos)
     if cell:
         cell.toggle_color()
         draw_cell(screen, cell)
+
+def handle_right_click(screen, grid, pixelpos):
+    cell = clicked_cell(grid, pixelpos)
+    if cell:
+        neighborhood = grid.neighborhood(cell)
+        for cell in neighborhood:
+            cell.toggle_color()
+            draw_cell(screen, cell)
 
 def main():
 #Initialize Everything
@@ -129,8 +148,10 @@ def main():
             elif event.type == KEYDOWN and event.key in (K_ESCAPE, K_q):
                 return
             elif event.type == MOUSEBUTTONDOWN: 
-                if event.button == 1:
+                if event.button == 1: # left click
                     handle_click(screen, grid, event.pos)
+                elif event.button == 3: # right click
+                    handle_right_click(screen, grid, event.pos)
 
 
     #Draw Everything
