@@ -12,7 +12,8 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'util'))
 
 from vector2D import Vec2d
 from draw import draw_text
-from constants import GRIDDIM, FIELDSIZE
+from constants import GRIDDIM, FIELDSIZE, DEAD, COLORCYCLE, ALIVE1, ALIVE2
+from hexlife import evolve_grid
 #import autopdb
 
 SQRT3 = math.sqrt(3)
@@ -43,15 +44,19 @@ class Grid():
                 ]
         return filter(None, res)
 
+    def __getitem__(self, pos):
+        return self._cells.get(pos)
+
 
 class Cell():
-    def __init__(self, x, y, color=(255,0,0)):
+    def __init__(self, x, y, colorindex=0):
         self.pos = Vec2d(x, y)
-        self.color = color
-        self.color2 = (0, 255, 0)
+        self.colorindex = colorindex
+        self.color = COLORCYCLE[colorindex]
 
     def toggle_color(self):
-        self.color, self.color2 = self.color2, self.color
+        self.colorindex = (self.colorindex + 1) % len(COLORCYCLE)
+        self.color = COLORCYCLE[self.colorindex]
 
 def draw_grid(screen, grid):
     for cell in grid.cells():
@@ -60,7 +65,7 @@ def draw_grid(screen, grid):
 def draw_cell(screen, cell):
     x, y = cell.pos
     center = draw_hex(screen, x, y, cell.color)
-    draw_text(screen, center, "%s,%s" % (x, y), 20, (255,255,255))
+    #draw_text(screen, center, "%s,%s" % (x, y), 20, (255,255,255))
 
 def get_hex_center(x, y):
     center = (Vec2d(x + 0.5, SQUASH * y + 0.5) * FIELDSIZE).toInt()
@@ -137,7 +142,11 @@ def main():
 # draw initially
     draw_grid(screen, grid)
 
+    def redraw_cell(cell):
+        draw_cell(screen, cell)
+
 #Main Loop
+    run_life = False
     while True:
         clock.tick(60)
 
@@ -147,12 +156,20 @@ def main():
                 return
             elif event.type == KEYDOWN and event.key in (K_ESCAPE, K_q):
                 return
+            elif event.type == KEYDOWN and event.key in (K_ESCAPE, K_s):
+                run_life = not run_life
+            elif event.type == KEYDOWN and event.key in (K_ESCAPE, K_d):
+                evolve_grid(grid, redraw_cell, ALIVE1, [-1])
+                evolve_grid(grid, redraw_cell, ALIVE2, [-1])
             elif event.type == MOUSEBUTTONDOWN: 
                 if event.button == 1: # left click
                     handle_click(screen, grid, event.pos)
                 elif event.button == 3: # right click
                     handle_right_click(screen, grid, event.pos)
 
+        if run_life:
+            evolve_grid(grid, redraw_cell, ALIVE1)
+            evolve_grid(grid, redraw_cell, ALIVE2)
 
     #Draw Everything
         #screen.blit(last_screen, (0, 0))
